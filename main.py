@@ -10,7 +10,7 @@ class POSMainPage:
     def __init__(self, root):
         self.root = root
         self.root.title("Supermarket POS System")
-        self.root.geometry("900x650")
+        self.root.geometry("990x650")
 
         # Database
         self.db = Database()
@@ -41,10 +41,6 @@ class POSMainPage:
         # Bind the event to update suggestions on typing
         self.search_name_combobox.bind("<KeyRelease>", self.update_suggestions)
         self.search_name_combobox.bind('<Return>', self.add_product_by_name)
-
-        # Add Manually Button
-        tk.Button(self.root, text="Add Manually", command=self.add_product_manually, bg="#6d899c", fg="white").place(
-            x=500, y=18)
 
         # Purchase List Table
         self.tree = ttk.Treeview(self.root, columns=("Name", "Quantity", "Price", "Total"), show="headings")
@@ -91,6 +87,17 @@ class POSMainPage:
             fg="white"
         )
         modify_btn.grid(row=0, column=3, padx=10)
+
+        # Change Price Button (New)
+        change_price_btn = tk.Button(
+            btn_frame,
+            text="Change Item Price",
+            command=self.change_item_price,
+            width=15,
+            bg="#ff9800",
+            fg="white"
+        )
+        change_price_btn.grid(row=0, column=4, padx=10)
 
         # Discount Button
         tk.Button(
@@ -281,6 +288,33 @@ class POSMainPage:
 
         messagebox.showinfo("Success", f"Price for '{name}' updated successfully.")
 
+    def change_item_price(self):
+        """Change the price of a selected item."""
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showerror("Error", "Please select an item to change its price.")
+            return
+
+        for item in selected_item:
+            values = self.tree.item(item, "values")
+            product_name = values[0]
+            old_price = values[2]
+
+            new_price = simpledialog.askfloat("Change Price", f"Enter the new price for '{product_name}' (Old price: {old_price}):", minvalue=0.0)
+            if new_price is None:
+                return
+
+            # Update the price in the purchase list
+            for purchase_item in self.purchase_list:
+                if purchase_item["name"] == product_name:
+                    purchase_item["price"] = new_price
+                    purchase_item["total"] = purchase_item["quantity"] * new_price
+                    break
+
+            self.update_table()
+
+            messagebox.showinfo("Success", f"Price for '{product_name}' updated to {new_price}.")
+
     def print_receipt(self):
         """Save and print receipt."""
         if not self.purchase_list:
@@ -322,10 +356,6 @@ class POSMainPage:
         if discount is not None:
             self.discount_var.set(discount)
             self.update_table()
-
-    def add_product_manually(self):
-        """Open Add Product window to add a product manually."""
-        AddProductWindow(self.root, self.db)
 
     def add_new_product(self):
         """Open Add Product window to register a new product."""
